@@ -78,8 +78,6 @@ Parsed results will appear both:
 ```
 
 
-```
-
 🧱 Databricks Output Example
 
 After upload, query your table in Databricks or DBeaver:
@@ -94,8 +92,6 @@ ORDER BY text_length DESC;
 | report.pdf | .pdf      | 1423        |
 | notes.docx | .docx     | 986         |
 | data.xlsx  | .xlsx     | 251         |
-
-```
 
 ```
 
@@ -121,7 +117,6 @@ Now you can explore and query your parsed_files table directly in DBeaver’s SQ
 
 ```
 
-
 📦 Requirements
 
 | Library                | Purpose                                        |
@@ -134,7 +129,6 @@ Now you can explore and query your parsed_files table directly in DBeaver’s SQ
 | **databricks-connect** | Local Spark–Databricks integration             |
 | **pyarrow**            | Optimized data transfer (optional)             |
 
-
 ```
 
 📜 License
@@ -143,10 +137,10 @@ This project is licensed under the MIT License — you are free to use, modify, 
 
 ```
 
-```
-
 👨‍💻 Author
 
 Sasi Kanakinti
-💼 [GitHub Profile](https://github.com/sasi-kanakinti)  
-📧 For suggestions or collaborations, feel free to reach out!
+
+💼 [GitHub Profile](https://github.com/sasi-kanakinti)
+
+```
