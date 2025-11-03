@@ -137,12 +137,13 @@ This project is licensed under the MIT License — you are free to use, modify, 
 
 ```
 
+```
+
 👨‍💻 Author
 
 Sasi Kanakinti
-💼 [GitHub Profile](https://github.com/sasi-kanakinti)
 
-```
+💼 [GitHub Profile](https://github.com/sasi-kanakinti)
 
 ```
 
