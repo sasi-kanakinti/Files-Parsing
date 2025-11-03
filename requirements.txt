@@ -1,19 +1,19 @@
 # Core Python Version Requirement
-python>=3.13.0
+python>=3.12.0
 
 # Document Processing Libraries
 # -----------------------
 # PDF processing and text extraction
-PyMuPDF==1.24.9          # Fast PDF parsing with image support
+PyMuPDF==1.25.0          # Fast PDF parsing with image support
 python-docx==1.1.2       # Microsoft Word document handling
-pandas==2.2.3            # Data manipulation and analysis
+pandas==2.2.4            # Data manipulation and analysis
 openpyxl==3.1.5         # Excel file support
 
 # Databricks Integration
 # -----------------------
 pyspark==3.5.3           # Apache Spark Python API
-databricks-connect==15.0.3  # Databricks connectivity
-pyarrow==17.0.0          # Optimized data transfer
+databricks-connect==15.1.0  # Databricks connectivity
+pyarrow==17.0.1          # Optimized data transfer
 
 # GUI Components
 # -----------------------

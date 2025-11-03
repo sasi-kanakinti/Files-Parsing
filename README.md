@@ -1,6 +1,6 @@
 # 🧠 Document Parser + Databricks Integration
 
-![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)
+![Python](https://img.shields.io/badge/Python-3.12%2B-blue.svg)
 ![Databricks](https://img.shields.io/badge/Databricks-Integration-orange.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 ![DBeaver](https://img.shields.io/badge/Compatible-DBeaver-blue.svg)
@@ -18,10 +18,11 @@ Using **DBeaver**, you can visually explore, validate, and run SQL queries on th
 ## 🎯 Quick Start
 
 ```bash
-# Clone and run in 3 simple steps
+# Clone and run in 4 simple steps
 git clone https://github.com/sasi-kanakinti/Files-Parsing.git
 pip install -r requirements.txt
-python gui_parser.py
+python gui_parser.py           # For parsing files
+python -m stage_2_databricks.gui_databricks  # For Databricks upload
 ```
 
 ## 🎥 Demo
@@ -95,12 +96,16 @@ project_root/
 │   ├── word_parser.py        # Word processing
 │   └── gui_parser.py         # GUI interface
 ├── 📁 stage_2_databricks/    # Databricks integration
-│   ├── databricks_uploader.py
-│   └── gui_databricks.py
+│   ├── __init__.py          # Package initialization
+│   ├── databricks_uploader.py # CLI uploader
+│   ├── db_utils.py          # Database utilities
+│   ├── gui_databricks.py    # GUI interface
+│   └── test_connect.py      # Connection tester
 ├── 📁 outputs/               # Processed outputs
 │   ├── excel_output/
 │   ├── pdf_output/
 │   └── word_output/
+│   └── *_images/            # Extracted images
 ├── 📄 requirements.txt       # Dependencies
 └── 📄 README.md             # Documentation
 ```
@@ -147,14 +152,31 @@ Provide:
 
 ```
 
-4️⃣ Run the Parser
-python parse_to_databricks.py
+4️⃣ Run the Application
 
-Parsed results will appear both:
+There are two ways to use the application:
 
-    In your Databricks Delta table (parsed_files)
+a) Using the GUI Interface (Recommended):
 
-    In your local folder: outputs/parsed_output.txt
+```bash
+# First, parse your documents
+python gui_parser.py
+
+# Then, upload to Databricks
+python -m stage_2_databricks.gui_databricks
+```
+
+b) Using Command Line Interface:
+
+```bash
+# For direct upload of parsed files
+python -m stage_2_databricks.databricks_uploader
+```
+
+Parsed results will appear in:
+
+- Your Databricks Delta table (parsed_files)
+- Your local folder: outputs/[file_type]\_output/
 
 ```
 
