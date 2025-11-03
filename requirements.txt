@@ -10,3 +10,9 @@ databricks-connect==15.0.3
 
 # Additional utilities
 pyarrow==17.0.0
+
+#python
+python==3.13.0
+
+#for gui
+tk==0.1.0

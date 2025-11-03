@@ -135,16 +135,8 @@ Now you can explore and query your parsed_files table directly in DBeaver’s SQ
 
 This project is licensed under the MIT License — you are free to use, modify, and distribute it with attribution.
 
-```
-
-```
-
 👨‍💻 Author
 
 Sasi Kanakinti
 
 💼 [GitHub Profile](https://github.com/sasi-kanakinti)
-
-```
-
-```
