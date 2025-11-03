@@ -107,6 +107,7 @@ def init_spark(app_name="FileParserDatabricks"):
         print(f"❌ Spark initialization failed: {e}")
         traceback.print_exc()
         return None
+
 def create_parsed_table_if_not_exists(spark, table_name):
     """Creates a table in Databricks if it doesn't already exist."""
     try:
@@ -121,7 +122,6 @@ def create_parsed_table_if_not_exists(spark, table_name):
     except Exception as e:
         print(f"❌ Failed to create table {table_name}: {e}")
 
-
 def write_to_databricks(spark, data_path, table_name="parsed_files"):
     """
     Unified write: use Spark if available, else fall back to SQL upload.
@@ -134,7 +134,7 @@ def write_to_databricks(spark, data_path, table_name="parsed_files"):
             elif ext == ".parquet":
                 df = spark.read.parquet(data_path)
             else:
-                df = spark.read.text(data_path)  
+                df = spark.read.text(data_path)
 
             spark.sql(f"DROP TABLE IF EXISTS {table_name}")
             df.write.format("delta").mode("overwrite").saveAsTable(table_name)
