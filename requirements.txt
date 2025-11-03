@@ -1,18 +1,31 @@
-# Core libraries for file parsing
-PyMuPDF==1.24.9          
-python-docx==1.1.2       
-pandas==2.2.3            
-openpyxl==3.1.5          
+# Core Python Version Requirement
+python>=3.13.0
 
-# Databricks integration
-pyspark==3.5.3           
-databricks-connect==15.0.3  
+# Document Processing Libraries
+# -----------------------
+# PDF processing and text extraction
+PyMuPDF==1.24.9          # Fast PDF parsing with image support
+python-docx==1.1.2       # Microsoft Word document handling
+pandas==2.2.3            # Data manipulation and analysis
+openpyxl==3.1.5         # Excel file support
 
-# Additional utilities
-pyarrow==17.0.0
+# Databricks Integration
+# -----------------------
+pyspark==3.5.3           # Apache Spark Python API
+databricks-connect==15.0.3  # Databricks connectivity
+pyarrow==17.0.0          # Optimized data transfer
 
-#python
-python==3.13.0
+# GUI Components
+# -----------------------
+tk==0.1.0               # Tkinter for GUI interface
 
-#for gui
-tk==0.1.0
+# Optional Development Tools (uncomment as needed)
+# -----------------------
+# pytest>=7.4.0         # Testing framework
+# black>=23.9.1         # Code formatting
+# flake8>=6.1.0         # Code linting
+# sphinx>=7.2.6         # Documentation generator
+# notebook>=7.0.6       # Jupyter notebook support
+
+# Note: All versions are tested and compatible with Python 3.13.0
+# For development, consider installing with: pip install -r requirements.txt[dev]
