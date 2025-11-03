@@ -1,0 +1,7 @@
+[project]
+name = "files-parsing"
+version = "0.1.0"
+description = "This project parses PDF, Word, and Excel files, organizes their content using pandas, and uploads the structured data to Databricks through PySpark for further analysis. It can also save a local backup of the parsed output in an outputs/ folder. The integration with DBeaver allows you to visually explore and query the Databricks tables using SQL without coding. This setup provides an end-to-end solution — from document parsing to database visualization — making it ideal for building searchable or analytical document repositories."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = "requirements.txt"

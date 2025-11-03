@@ -1,0 +1,12 @@
+# Core libraries for file parsing
+PyMuPDF==1.24.9          
+python-docx==1.1.2       
+pandas==2.2.3            
+openpyxl==3.1.5          
+
+# Databricks integration
+pyspark==3.5.3           
+databricks-connect==15.0.3  
+
+# Additional utilities
+pyarrow==17.0.0
