@@ -88,7 +88,7 @@ def upload_parsed_records(file_records, table_name="parsed_files"):
     insert_sql = f"""
         INSERT INTO {full_table}
         (file_name, file_type, content_base64, parsed_at)
-        VALUES (?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s)
     """
 
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
