@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+  <div class="col-md-10 offset-md-1">
+    <h3>Parsed Results</h3>
+    <p>Session: <strong>{{ session_id }}</strong></p>
+
+    <div class="mb-3">
+      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('download_output', filename=output_file) }}">Download parsed outputs (outputs/{{ output_file }})</a>
+    </div>
+
+    <div class="accordion" id="resultsAccordion">
+      {% for r in records %}
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="heading{{ loop.index }}">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ loop.index }}">
+            {{ r.file_name }} — {{ r.file_type }}
+          </button>
+        </h2>
+        <div id="collapse{{ loop.index }}" class="accordion-collapse collapse" data-bs-parent="#resultsAccordion">
+          <div class="accordion-body">
+            <pre style="white-space: pre-wrap;">{{ r.snippet }}</pre>
+            <details>
+              <summary>Show full content</summary>
+              <pre style="white-space: pre-wrap;">{{ r.content }}</pre>
+            </details>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <hr/>
+    <h5>Upload parsed output to Databricks</h5>
+    <form id="dbForm">
+      <div class="row g-2 align-items-center">
+        <div class="col-auto">
+          <label class="col-form-label">Table name</label>
+        </div>
+        <div class="col-auto">
+          <input type="text" class="form-control" name="table_name" id="table_name" placeholder="parsed_files" required>
+        </div>
+        <div class="col-auto">
+          <input type="hidden" id="output_file" name="output_file" value="{{ output_file }}">
+          <button type="submit" class="btn btn-success">Upload to Databricks</button>
+        </div>
+      </div>
+    </form>
+
+    <div id="dbStatus" class="mt-3"></div>
+
+  </div>
+</div>
+
+<script>
+document.getElementById("dbForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
+  const table_name = document.getElementById("table_name").value;
+  const output_file = document.getElementById("output_file").value;
+  const status = document.getElementById("dbStatus");
+  status.innerHTML = "Uploading to Databricks...";
+
+  try {
+    const resp = await fetch('{{ url_for("upload_to_databricks") }}', {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ table_name, output_file })
+    });
+    const data = await resp.json();
+    if (resp.ok) {
+      status.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+    } else {
+      status.innerHTML = `<div class="alert alert-danger">Error: ${data.error || 'Unknown'}</div>`;
+    }
+  } catch (err) {
+    status.innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
+  }
+});
+</script>
+{% endblock %}

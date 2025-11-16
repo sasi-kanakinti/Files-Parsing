@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+  <div class="col-md-8 offset-md-2">
+    <h3>Upload files to parse</h3>
+    <p class="text-muted">Supported: PDF (.pdf), Word (.docx), Excel (.xlsx, .xls)</p>
+
+    <form method="post" action="{{ url_for('upload_files') }}" enctype="multipart/form-data" class="mb-3">
+      <div class="mb-3">
+        <input class="form-control" type="file" name="files" id="files" multiple required>
+      </div>
+      <button class="btn btn-primary" type="submit">Upload & Parse</button>
+    </form>
+
+    <hr/>
+
+    <h5>Outputs</h5>
+    <p>Parsed output files are saved to the <code>outputs/</code> folder. Use the results page to download or upload to Databricks.</p>
+  </div>
+</div>
+{% endblock %}

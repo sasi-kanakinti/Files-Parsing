@@ -1,11 +1,13 @@
 # stage_2_databricks/__init__.py
+
 """
-Initialization file for the stage_2_databricks package.
-This file ensures all utility functions can be imported cleanly.
+Clean package initializer for optimized Databricks utilities.
 """
 
-from .db_utils import (
-    create_parsed_table_if_not_exists,
-    upload_parsed_records,
-    write_to_databricks,
-)
+from .db_utils import upload_parsed_records, write_to_databricks, init_spark
+
+__all__ = [
+    "upload_parsed_records",
+    "write_to_databricks",
+    "init_spark",
+]

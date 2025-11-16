@@ -1,31 +1,43 @@
-# Core Python Version Requirement
-python>=3.12.0
+# ------------------------------
+# Python Version
+# ------------------------------
+python-dotenv>=1.0.0     # Environment variable support
 
-# Document Processing Libraries
-# -----------------------
-# PDF processing and text extraction
-PyMuPDF==1.25.0          # Fast PDF parsing with image support
-python-docx==1.1.2       # Microsoft Word document handling
-pandas==2.2.4            # Data manipulation and analysis
-openpyxl==3.1.5         # Excel file support
+# ------------------------------
+# Flask Web Frontend
+# ------------------------------
+Flask>=2.3.0              # Web server for frontend UI
+gunicorn>=21.2.0          # Production server (optional for deployment)
 
+# ------------------------------
+# Document Parsing Libraries
+# ------------------------------
+PyMuPDF>=1.23.0           # Fast PDF parsing + image support
+python-docx>=0.8.11       # Word document parser
+pandas>=2.0.0             # Data processing
+openpyxl>=3.1.0           # Excel parser
+numpy>=1.26.0             # Pandas dependency (performance)
+
+# ------------------------------
 # Databricks Integration
-# -----------------------
-pyspark==3.5.3           # Apache Spark Python API
-databricks-connect==15.1.0  # Databricks connectivity
-pyarrow==17.0.1          # Optimized data transfer
+# ------------------------------
+pyspark>=3.5.0            # Spark runtime
+databricks-sql-connector>=0.10.0   # Recommended SQL connector
+# databricks-connect is deprecated (optional only if needed)
+databricks-connect>=13.0         
 
-# GUI Components
-# -----------------------
-tk==0.1.0               # Tkinter for GUI interface
+pyarrow>=14.0.0           # Fast data transport, enables optimized Spark I/O
 
-# Optional Development Tools (uncomment as needed)
-# -----------------------
-# pytest>=7.4.0         # Testing framework
-# black>=23.9.1         # Code formatting
-# flake8>=6.1.0         # Code linting
-# sphinx>=7.2.6         # Documentation generator
-# notebook>=7.0.6       # Jupyter notebook support
+# ------------------------------
+# Optional: GUI (legacy Tkinter)
+# ------------------------------
+# tk                   # Not installable via pip (comes with Python)
 
-# Note: All versions are tested and compatible with Python 3.13.0
-# For development, consider installing with: pip install -r requirements.txt[dev]
+# ------------------------------
+# Optional Dev Tools
+# ------------------------------
+# pytest>=7.4.0
+# black>=24.0.0
+# flake8>=7.0.0
+# notebook>=7.0.0
+# sphinx>=7.0.0
