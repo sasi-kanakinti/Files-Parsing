@@ -1,5 +1,5 @@
 # ============================================================
-# app.py — FINAL RAILWAY DEPLOYMENT VERSION (WORKING)
+# app.py — FINAL RAILWAY DEPLOYMENT VERSION (BUG-FIXED)
 # ============================================================
 
 import os
@@ -13,7 +13,7 @@ from flask import (
 # stage 1 parsing
 from stage_1_parsing import process_folder, save_parsed_data
 
-# databricks
+# databricks utilities
 from stage_2_databricks.db_utils import (
     upload_parsed_records, list_tables, preview_table, drop_table
 )
@@ -21,149 +21,122 @@ from stage_2_databricks.db_utils import (
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET", "supersecretkey")
 
-# ============================================================
-# DIRECTORIES (Railway temporary storage)
-# ============================================================
+# ======================================================
+# FIXED DIRECTORIES (Railway SAFE)
+# ======================================================
 UPLOAD_ROOT = "/tmp/uploads"
-OUTPUTS_DIR = "/tmp/outputs"
-IMAGES_ROOT = "/tmp/Outputs"
+OUTPUTS_DIR = "/tmp/outputs"      # << FIXED
+IMAGES_ROOT = "/tmp/outputs/images"
 
 os.makedirs(UPLOAD_ROOT, exist_ok=True)
 os.makedirs(OUTPUTS_DIR, exist_ok=True)
 os.makedirs(IMAGES_ROOT, exist_ok=True)
 
 
-# ============================================================
-# HOME PAGE
-# ============================================================
+# ======================================================
+# HOME
+# ======================================================
 @app.route("/")
 def index():
     return render_template("index.html")
 
 
-# ============================================================
-# UPLOAD FILES
-# ============================================================
+# ======================================================
+# UPLOAD
+# ======================================================
 @app.route("/upload", methods=["POST"])
 def upload_files():
     if "files" not in request.files:
-        flash("No files uploaded.", "danger")
+        flash("No files uploaded", "danger")
         return redirect(url_for("index"))
 
     files = request.files.getlist("files")
+
     if not files:
-        flash("Select at least one file.", "warning")
+        flash("Select at least one file", "warning")
         return redirect(url_for("index"))
 
     session_id = datetime.utcnow().strftime("%Y%m%dT%H%M%S") + "_" + uuid.uuid4().hex[:8]
-    dest_dir = os.path.join(UPLOAD_ROOT, session_id)
-    os.makedirs(dest_dir, exist_ok=True)
+    dest = os.path.join(UPLOAD_ROOT, session_id)
+    os.makedirs(dest, exist_ok=True)
 
     saved = []
     for f in files:
         if f.filename:
-            f.save(os.path.join(dest_dir, f.filename))
+            path = os.path.join(dest, f.filename)
+            f.save(path)
             saved.append(f.filename)
 
     if not saved:
-        flash("Files could not be saved.", "danger")
+        flash("Files could not be saved", "danger")
         return redirect(url_for("index"))
 
     return redirect(url_for("parse_results", session_id=session_id))
 
 
-# ============================================================
-# PARSE RESULTS PAGE
-# ============================================================
+# ======================================================
+# PARSE RESULTS
+# ======================================================
 @app.route("/parse/<session_id>")
 def parse_results(session_id):
-    upload_folder = os.path.join(UPLOAD_ROOT, session_id)
+    folder = os.path.join(UPLOAD_ROOT, session_id)
 
-    if not os.path.isdir(upload_folder):
-        flash("Session not found.", "danger")
+    if not os.path.isdir(folder):
+        flash("Session not found", "danger")
         return redirect(url_for("index"))
 
+    # process
     try:
-        parsed_df = process_folder(upload_folder, session_id)
+        parsed_df = process_folder(folder, session_id)
     except Exception as e:
-        return render_template("error.html", error=f"Parsing failed: {e}")
+        return render_template("error.html", error=f"Parser failed: {e}")
 
-    # save parsed text
-    output_name = f"parsed_output_{session_id}.txt"
+    # save output file
+    output_filename = f"parsed_output_{session_id}.txt"
+    output_path = os.path.join(OUTPUTS_DIR, output_filename)
+
     try:
-        save_parsed_data(parsed_df, output_name)
-    except:
-        # fallback file
-        with open(os.path.join(OUTPUTS_DIR, output_name), "w", encoding="utf-8") as f:
+        save_parsed_data(parsed_df, output_path)   # << FIXED PATH
+    except Exception:
+        with open(output_path, "w", encoding="utf-8") as f:
             f.write("")
 
-    # build parsed records
+    # prepare records
     records = []
     for _, row in parsed_df.iterrows():
-        txt = str(row.get("content", ""))
-        snippet = txt[:1000] + "..." if len(txt) > 1000 else txt
+        text = str(row.get("content", ""))
+        snippet = text[:1000] + "..." if len(text) > 1000 else text
 
         records.append({
             "file_name": row["file_name"],
             "file_type": row["file_type"],
-            "content": txt,
+            "content": text,
             "snippet": snippet,
             "images": row.get("images", [])
         })
-
-    # images grouped by file type
-    images_by_type = {"pdf": [], "word": [], "excel": []}
-    for r in records:
-        ext = r["file_type"].lower()
-
-        if ext == ".pdf":
-            bucket = "pdf"
-        elif ext in [".doc", ".docx"]:
-            bucket = "word"
-        elif ext in [".xls", ".xlsx"]:
-            bucket = "excel"
-        else:
-            continue
-
-        for img_path in r["images"]:
-            filename = os.path.basename(img_path)
-            images_by_type[bucket].append({
-                "url": url_for("serve_image", typ=bucket, session_id=session_id, filename=filename),
-                "name": filename,
-                "path": img_path
-            })
-
-    uploaded_files = os.listdir(upload_folder)
 
     return render_template(
         "results.html",
         session_id=session_id,
         parsed_records=records,
-        uploaded_files=uploaded_files,
-        output_file=output_name,   # <--- FIXED
-        images_by_type=images_by_type
+        output_file=output_filename
     )
 
 
-# ============================================================
-# DOWNLOAD PARSED OUTPUT (Fixed)
-# ============================================================
+# ======================================================
+# DOWNLOAD PARSED OUTPUT
+# ======================================================
 @app.route("/download/<filename>")
 def download_output(filename):
-    file_path = os.path.join(OUTPUTS_DIR, filename)
-
-    if not os.path.exists(file_path):
-        return f"❌ File not found on server: {file_path}", 404
-
     return send_from_directory(OUTPUTS_DIR, filename, as_attachment=True)
 
 
-# ============================================================
-# SERVE EXTRACTED IMAGES
-# ============================================================
-@app.route("/images/<typ>/<session_id>/<filename>")
-def serve_image(typ, session_id, filename):
-    folder = os.path.join(IMAGES_ROOT, f"{typ}_images", session_id)
+# ======================================================
+# SERVE IMAGES
+# ======================================================
+@app.route("/images/<session_id>/<filename>")
+def serve_image(session_id, filename):
+    folder = os.path.join(IMAGES_ROOT, session_id)
 
     if not os.path.isdir(folder):
         return ("Image folder not found", 404)
@@ -171,42 +144,40 @@ def serve_image(typ, session_id, filename):
     return send_from_directory(folder, filename)
 
 
-# ============================================================
-# DOWNLOAD ORIGINAL UPLOADED FILES
-# ============================================================
+# ======================================================
+# ORIGINAL FILE DOWNLOAD
+# ======================================================
 @app.route("/uploads/<session_id>/<filename>")
 def download_uploaded_file(session_id, filename):
     folder = os.path.join(UPLOAD_ROOT, session_id)
     return send_from_directory(folder, filename, as_attachment=True)
 
 
-# ============================================================
-# PREVIEW PDFs INLINE
-# ============================================================
+# ======================================================
+# PDF PREVIEW
+# ======================================================
 @app.route("/preview/<session_id>/<filename>")
 def preview_uploaded_file(session_id, filename):
     folder = os.path.join(UPLOAD_ROOT, session_id)
     return send_from_directory(folder, filename)
 
 
-# ============================================================
+# ======================================================
 # UPLOAD TO DATABRICKS
-# ============================================================
+# ======================================================
 @app.route("/upload_to_databricks", methods=["POST"])
 def upload_to_databricks():
     data = request.get_json() or request.form
     table = data.get("table_name")
     output_filename = data.get("output_file")
 
-    if not table:
-        return jsonify({"error": "table_name required"}), 400
-    if not output_filename:
-        return jsonify({"error": "output_file required"}), 400
+    if not table or not output_filename:
+        return jsonify({"error": "Missing table or file"}), 400
 
     file_path = os.path.join(OUTPUTS_DIR, output_filename)
 
     if not os.path.exists(file_path):
-        return jsonify({"error": "output file not found"}), 404
+        return jsonify({"error": "Output file not found"}), 404
 
     with open(file_path, "r", encoding="utf-8") as f:
         content = f.read()
@@ -216,18 +187,19 @@ def upload_to_databricks():
             [{"file_name": output_filename, "file_type": ".txt", "content": content}],
             table_name=table
         )
-        return jsonify({"message": f"Uploaded to Databricks table '{table}'"})
+        return jsonify({"message": f"Uploaded to Databricks table {table}"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
-# ============================================================
-# DATABRICKS TABLE MANAGEMENT
-# ============================================================
+# ======================================================
+# DATABRICKS TABLE LIST
+# ======================================================
 @app.route("/db/tables")
 def db_tables():
     try:
-        return render_template("db_tables.html", tables=list_tables())
+        tables = list_tables()
+        return render_template("db_tables.html", tables=tables)
     except Exception as e:
         return render_template("error.html", error=str(e))
 
@@ -236,23 +208,20 @@ def db_tables():
 def db_table_preview(table_name):
     try:
         cols, rows = preview_table(table_name)
-        return render_template("db_table_preview.html", table_name=table_name, columns=cols, rows=rows)
+        return render_template("db_table_preview.html", columns=cols, rows=rows, table_name=table_name)
     except Exception as e:
         return render_template("error.html", error=str(e))
 
 
 @app.route("/db/table/<table_name>/delete", methods=["POST"])
 def db_table_delete(table_name):
-    try:
-        drop_table(table_name)
-        flash("Table deleted", "success")
-        return redirect(url_for("db_tables"))
-    except Exception as e:
-        return render_template("error.html", error=str(e))
+    drop_table(table_name)
+    flash("Table deleted", "success")
+    return redirect(url_for("db_tables"))
 
 
-# ============================================================
-# RUN LOCAL
-# ============================================================
+# ======================================================
+# RUN
+# ======================================================
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
