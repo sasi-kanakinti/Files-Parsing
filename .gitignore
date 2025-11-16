@@ -127,3 +127,5 @@ MANIFEST
 local_settings.py
 instance/
 .webassets-cache
+
+render.yaml

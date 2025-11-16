@@ -1,43 +1,9 @@
-# ------------------------------
-# Python Version
-# ------------------------------
-python-dotenv>=1.0.0     # Environment variable support
-
-# ------------------------------
-# Flask Web Frontend
-# ------------------------------
-Flask>=2.3.0              # Web server for frontend UI
-gunicorn>=21.2.0          # Production server (optional for deployment)
-
-# ------------------------------
-# Document Parsing Libraries
-# ------------------------------
-PyMuPDF>=1.23.0           # Fast PDF parsing + image support
-python-docx>=0.8.11       # Word document parser
-pandas>=2.0.0             # Data processing
-openpyxl>=3.1.0           # Excel parser
-numpy>=1.26.0             # Pandas dependency (performance)
-
-# ------------------------------
-# Databricks Integration
-# ------------------------------
-pyspark>=3.5.0            # Spark runtime
-databricks-sql-connector>=0.10.0   # Recommended SQL connector
-# databricks-connect is deprecated (optional only if needed)
-databricks-connect>=13.0         
-
-pyarrow>=14.0.0           # Fast data transport, enables optimized Spark I/O
-
-# ------------------------------
-# Optional: GUI (legacy Tkinter)
-# ------------------------------
-# tk                   # Not installable via pip (comes with Python)
-
-# ------------------------------
-# Optional Dev Tools
-# ------------------------------
-# pytest>=7.4.0
-# black>=24.0.0
-# flake8>=7.0.0
-# notebook>=7.0.0
-# sphinx>=7.0.0
+Flask==3.0.2
+gunicorn==21.2.0
+pandas==2.2.1
+python-docx==1.1.0
+openpyxl==3.1.2
+pymupdf==1.23.8
+requests==2.31.0
+dbx==0.8.11
+databricks-sdk==0.27.0

@@ -4,6 +4,7 @@
 <div class="row">
   <div class="col-md-10 offset-md-1">
 
+    <!-- Uploaded Files -->
     <h3>Uploaded Files</h3>
 
     {% if uploaded_files %}
@@ -25,33 +26,35 @@
     {% endif %}
 
 
+    <!-- Parsed Results -->
     <h3>Parsed Results</h3>
     <p>Session: <strong>{{ session_id }}</strong></p>
 
+    <!-- Download parsed output -->
     <div class="mb-3">
       <a class="btn btn-outline-secondary btn-sm"
          href="{{ url_for('download_output', filename=output_file) }}">
-         Download parsed outputs ({{ output_file }})
+         Download parsed output ({{ output_file }})
       </a>
     </div>
 
 
-    <!-- Parsed Files Accordion -->
+    <!-- Accordion of parsed files -->
     <div class="accordion" id="resultsAccordion">
       {% for r in parsed_records %}
       <div class="accordion-item">
 
         <h2 class="accordion-header" id="head{{ loop.index }}">
-          <button class="accordion-button collapsed" type="button"
+          <button class="accordion-button collapsed"
             data-bs-toggle="collapse" data-bs-target="#collapse{{ loop.index }}">
             {{ r.file_name }} — {{ r.file_type }}
           </button>
         </h2>
 
         <div id="collapse{{ loop.index }}" class="accordion-collapse collapse"
-          data-bs-parent="#resultsAccordion">
-          <div class="accordion-body">
+             data-bs-parent="#resultsAccordion">
 
+          <div class="accordion-body">
             <pre style="white-space: pre-wrap;">{{ r.snippet }}</pre>
 
             <details>
@@ -77,6 +80,7 @@
 
                   <a href="{{ im.url }}" download
                      class="btn btn-sm btn-outline-secondary mt-1">Download</a>
+
                 </div>
                 {% endfor %}
 
@@ -84,6 +88,7 @@
             {% endif %}
 
           </div>
+
         </div>
 
       </div>
@@ -93,7 +98,10 @@
 
     <hr/>
 
+
+    <!-- Upload to Databricks -->
     <h5>Upload parsed output to Databricks</h5>
+
     <form id="dbForm">
       <div class="row g-2">
 
@@ -115,12 +123,11 @@
 
     <div id="dbStatus" class="mt-3"></div>
 
-
   </div>
 </div>
 
 
-<!-- Modal -->
+<!-- Modal for image preview -->
 <div class="modal fade" id="imageModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content bg-dark">
@@ -130,6 +137,7 @@
     </div>
   </div>
 </div>
+
 
 <script>
 function openImageModal(url) {
