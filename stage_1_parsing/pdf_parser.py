@@ -1,6 +1,6 @@
 # stage_1_parsing/pdf_parser.py
 
-import pymupdf as fitz
+import fitz
 import os
 from typing import Tuple, List
 
