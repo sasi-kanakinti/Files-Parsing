@@ -69,16 +69,6 @@ def detect_namespace():
 # Upload Parsed Output (Base64 SAFE)
 # ============================================================
 def upload_parsed_records(file_records, table_name="parsed_files"):
-    """
-    file_records = [
-        {
-            "file_name": "...",
-            "file_type": "...",
-            "content": "...raw text..."
-        }
-    ]
-    """
-
     catalog, schema = detect_namespace()
     full_table = f"`{catalog}`.`{schema}`.`{table_name}`"
 
@@ -95,7 +85,6 @@ def upload_parsed_records(file_records, table_name="parsed_files"):
         )
     """)
 
-    # Insert using safe placeholders
     insert_sql = f"""
         INSERT INTO {full_table}
         (file_name, file_type, content_base64, parsed_at)
@@ -104,23 +93,26 @@ def upload_parsed_records(file_records, table_name="parsed_files"):
 
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
-    rows = []
     for rec in file_records:
-        encoded = base64.b64encode(rec["content"].encode("utf-8")).decode("utf-8")
+        encoded = base64.b64encode(
+            rec["content"].encode("utf-8")
+        ).decode("utf-8")
 
-        rows.append((
+        row = (
             rec["file_name"],
             rec["file_type"],
             encoded,
             now
-        ))
+        )
 
-    cur.executemany(insert_sql, rows)
+        # IMPORTANT: use execute() for each row
+        cur.execute(insert_sql, row)
 
+    conn.commit()
     cur.close()
     conn.close()
 
-    print(f"Uploaded {len(rows)} rows → {full_table}")
+    print(f"Uploaded {len(file_records)} rows → {full_table}")
 
 
 # ============================================================

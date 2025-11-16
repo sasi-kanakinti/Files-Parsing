@@ -168,10 +168,16 @@ def preview_uploaded_file(session_id, filename):
 # ============================================================
 @app.route("/upload_to_databricks", methods=["POST"])
 def upload_to_databricks():
-    data = request.get_json() or request.form
+    # Always safely read either JSON or form-data
+    if request.is_json:
+        data = request.get_json()
+    else:
+        data = request.form
+
     table_name = data.get("table_name")
     file_name = data.get("output_file")
 
+    # Validate inputs
     if not table_name:
         return jsonify({"error": "Table name required"}), 400
     if not file_name:
@@ -180,10 +186,17 @@ def upload_to_databricks():
     file_path = os.path.join(OUTPUTS_DIR, file_name)
 
     if not os.path.exists(file_path):
-        return jsonify({"error": "Output file not found"}), 404
+        return jsonify({"error": f"Output file not found: {file_path}"}), 404
 
-    with open(file_path, "r", encoding="utf-8") as f:
-        text = f.read()
+    # Load parsed output file
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            text = f.read().strip()  # strip whitespace
+    except Exception as e:
+        return jsonify({"error": f"Failed reading file: {str(e)}"}), 500
+
+    if not text:
+        return jsonify({"error": "Parsed file is empty, cannot upload"}), 400
 
     try:
         upload_parsed_records(
@@ -195,8 +208,10 @@ def upload_to_databricks():
             table_name=table_name
         )
         return jsonify({"message": f"Uploaded to Databricks: {table_name}"})
+
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Databricks upload failed: {str(e)}"}), 500
+
 
 
 
