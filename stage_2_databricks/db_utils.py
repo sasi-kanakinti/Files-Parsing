@@ -1,9 +1,10 @@
 """
 Databricks SQL Helper Utilities
-Fully patched & Railway-ready.
+Fully patched & Railway-ready with Base64-safe content storage.
 """
 
 import os
+import base64
 from datetime import datetime
 from databricks import sql
 from dotenv import load_dotenv
@@ -40,9 +41,7 @@ validate_env()
 # Stable SQL Connect
 # ============================================================
 def get_conn():
-    """
-    Returns a fresh Databricks SQL connector instance.
-    """
+    """Returns a fresh Databricks SQL connector."""
     return sql.connect(
         server_hostname=DATABRICKS_SERVER,
         http_path=DATABRICKS_HTTP_PATH,
@@ -51,12 +50,9 @@ def get_conn():
 
 
 # ============================================================
-# Detect Current Catalog & Schema
+# Detect Catalog / Schema
 # ============================================================
 def detect_namespace():
-    """
-    Returns tuple: (catalog, schema)
-    """
     conn = get_conn()
     cur = conn.cursor()
 
@@ -70,16 +66,15 @@ def detect_namespace():
 
 
 # ============================================================
-# Upload Parsed Records  (FIXED)
+# Upload Parsed Output (Base64 SAFE)
 # ============================================================
 def upload_parsed_records(file_records, table_name="parsed_files"):
     """
-    Upload parsed info as rows into a Databricks table.
     file_records = [
         {
             "file_name": "...",
             "file_type": "...",
-            "content": "...text..."
+            "content": "...raw text..."
         }
     ]
     """
@@ -90,41 +85,42 @@ def upload_parsed_records(file_records, table_name="parsed_files"):
     conn = get_conn()
     cur = conn.cursor()
 
-    # ---- CREATE TABLE -----------------------------------------------------
+    # Create table
     cur.execute(f"""
         CREATE TABLE IF NOT EXISTS {full_table} (
             file_name STRING,
             file_type STRING,
-            content STRING,
+            content_base64 STRING,
             parsed_at TIMESTAMP
         )
     """)
 
-    # ---- INSERT (PATCHED PLACEHOLDERS) -----------------------------------
+    # Insert using safe placeholders
     insert_sql = f"""
-        INSERT INTO {full_table} (file_name, file_type, content, parsed_at)
-        VALUES (:file_name, :file_type, :content, :parsed_at)
+        INSERT INTO {full_table}
+        (file_name, file_type, content_base64, parsed_at)
+        VALUES (?, ?, ?, ?)
     """
 
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
-    # Must be dict rows for Databricks SQL connector
-    rows = [
-        {
-            "file_name": rec["file_name"],
-            "file_type": rec["file_type"],
-            "content": rec["content"],
-            "parsed_at": now,
-        }
-        for rec in file_records
-    ]
+    rows = []
+    for rec in file_records:
+        encoded = base64.b64encode(rec["content"].encode("utf-8")).decode("utf-8")
+
+        rows.append((
+            rec["file_name"],
+            rec["file_type"],
+            encoded,
+            now
+        ))
 
     cur.executemany(insert_sql, rows)
 
     cur.close()
     conn.close()
 
-    print(f"✅ Uploaded {len(rows)} rows to {full_table}")
+    print(f"Uploaded {len(rows)} rows → {full_table}")
 
 
 # ============================================================
@@ -136,9 +132,7 @@ def list_tables():
     cur = conn.cursor()
 
     cur.execute(f"SHOW TABLES IN `{catalog}`.`{schema}`")
-    result = cur.fetchall()
-
-    tables = [row[1] for row in result]
+    tables = [row[1] for row in cur.fetchall()]
 
     cur.close()
     conn.close()
@@ -147,9 +141,9 @@ def list_tables():
 
 
 # ============================================================
-# Preview Table
+# Preview Table (AUTO-DECODE BASE64)
 # ============================================================
-def preview_table(table_name, limit=20):
+def preview_table(table_name, limit=50):
     catalog, schema = detect_namespace()
     full_table = f"`{catalog}`.`{schema}`.`{table_name}`"
 
@@ -158,13 +152,24 @@ def preview_table(table_name, limit=20):
 
     cur.execute(f"SELECT * FROM {full_table} LIMIT {limit}")
     rows = cur.fetchall()
-
     columns = [desc[0] for desc in cur.description]
+
+    # Decode Base64 content if column exists
+    decoded_rows = []
+    for row in rows:
+        row = list(row)
+        if "content_base64" in columns:
+            idx = columns.index("content_base64")
+            try:
+                row[idx] = base64.b64decode(row[idx]).decode("utf-8")
+            except:
+                row[idx] = "[Base64 Decode Error]"
+        decoded_rows.append(row)
 
     cur.close()
     conn.close()
 
-    return columns, rows
+    return columns, decoded_rows
 
 
 # ============================================================

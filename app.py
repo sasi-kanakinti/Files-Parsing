@@ -169,35 +169,35 @@ def preview_uploaded_file(session_id, filename):
 @app.route("/upload_to_databricks", methods=["POST"])
 def upload_to_databricks():
     data = request.get_json() or request.form
-
     table_name = data.get("table_name")
-    output_file = data.get("output_file")
+    file_name = data.get("output_file")
 
     if not table_name:
         return jsonify({"error": "Table name required"}), 400
-    if not output_file:
+    if not file_name:
         return jsonify({"error": "Output file missing"}), 400
 
-    file_path = os.path.join(OUTPUTS_DIR, output_file)
+    file_path = os.path.join(OUTPUTS_DIR, file_name)
 
     if not os.path.exists(file_path):
         return jsonify({"error": "Output file not found"}), 404
 
     with open(file_path, "r", encoding="utf-8") as f:
-        content = f.read()
+        text = f.read()
 
     try:
         upload_parsed_records(
             [{
-                "file_name": output_file,
+                "file_name": file_name,
                 "file_type": ".txt",
-                "content": content
+                "content": text
             }],
             table_name=table_name
         )
-        return jsonify({"message": f"Uploaded to Databricks table '{table_name}'"})
+        return jsonify({"message": f"Uploaded to Databricks: {table_name}"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 
 # ============================================================
