@@ -1,7 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="alert alert-danger">
-  <h4>Something went wrong</h4>
-  <p>{{ error }}</p>
+
+<div class="alert alert-danger mt-4">
+  <h4 class="alert-heading">⚠️ An error occurred</h4>
+  <p class="mb-0">
+    {{ error }}
+  </p>
 </div>
+
 {% endblock %}

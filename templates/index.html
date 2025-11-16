@@ -1,21 +1,38 @@
 {% extends "base.html" %}
 {% block content %}
+
 <div class="row">
   <div class="col-md-8 offset-md-2">
-    <h3>Upload files to parse</h3>
-    <p class="text-muted">Supported: PDF (.pdf), Word (.docx), Excel (.xlsx, .xls)</p>
 
-    <form method="post" action="{{ url_for('upload_files') }}" enctype="multipart/form-data" class="mb-3">
+    <h3 class="mb-3">Upload Files to Parse</h3>
+    <p class="text-muted">
+      Supported file types: <strong>PDF (.pdf), Word (.docx), Excel (.xls, .xlsx)</strong>
+    </p>
+
+    <!-- Upload form -->
+    <form method="post"
+          action="{{ url_for('upload_files') }}"
+          enctype="multipart/form-data"
+          class="mb-4">
+
       <div class="mb-3">
         <input class="form-control" type="file" name="files" id="files" multiple required>
       </div>
-      <button class="btn btn-primary" type="submit">Upload & Parse</button>
+
+      <button class="btn btn-primary" type="submit">
+        Upload & Parse
+      </button>
     </form>
 
-    <hr/>
+    <hr class="my-4"/>
 
-    <h5>Outputs</h5>
-    <p>Parsed output files are saved to the <code>outputs/</code> folder. Use the results page to download or upload to Databricks.</p>
+    <h5>Where are outputs stored?</h5>
+    <p class="text-muted">
+      After parsing, output text files and extracted images are stored in the
+      <code>/tmp/outputs/</code> directory (Railway-compatible temporary storage).
+    </p>
+
   </div>
 </div>
+
 {% endblock %}

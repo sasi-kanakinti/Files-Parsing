@@ -4,31 +4,39 @@ import fitz
 import os
 from typing import Tuple, List
 
+
 def parse_pdf(file_path: str, session_id: str) -> Tuple[str, List[str]]:
+    """
+    Extract text + images from PDF.
+    Images saved under: /tmp/outputs/images/pdf_images/<session_id>/
+    """
+
     text_parts = []
     saved_images = []
 
-    images_dir = os.path.join("Outputs", "pdf_images", session_id)
+    # Railway-safe GLOBAL folder
+    images_dir = os.path.join("/tmp/outputs/images", "pdf_images", session_id)
     os.makedirs(images_dir, exist_ok=True)
 
     with fitz.open(file_path) as pdf:
         for page_index, page in enumerate(pdf):
-            # extract text blocks safely
+
+            # -------- TEXT EXTRACTION --------
             try:
                 blocks = page.get_text("blocks")
                 for block in blocks:
                     if len(block) >= 5 and block[4].strip():
                         text_parts.append(block[4].strip())
-            except:
+            except Exception:
                 text_parts.append(page.get_text("text"))
 
-            # extract images
+            # -------- IMAGE EXTRACTION --------
             for img_index, img in enumerate(page.get_images(full=True)):
                 try:
                     xref = img[0]
-                    base_image = pdf.extract_image(xref)
-                    img_bytes = base_image["image"]
-                    ext = base_image.get("ext", "png")
+                    base = pdf.extract_image(xref)
+                    img_bytes = base["image"]
+                    ext = base.get("ext", "png")
 
                     img_name = f"{os.path.basename(file_path)}_p{page_index+1}_{img_index+1}.{ext}"
                     img_path = os.path.join(images_dir, img_name)
@@ -37,7 +45,8 @@ def parse_pdf(file_path: str, session_id: str) -> Tuple[str, List[str]]:
                         fh.write(img_bytes)
 
                     saved_images.append(img_path)
-                except:
+
+                except Exception:
                     continue
 
     return "\n".join(text_parts).strip(), saved_images

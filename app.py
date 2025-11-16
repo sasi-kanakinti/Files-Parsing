@@ -1,5 +1,5 @@
 # ============================================================
-# app.py — FINAL RAILWAY DEPLOYMENT VERSION (BUG-FIXED)
+# app.py — FINAL, FULLY PATCHED, RAILWAY-STABLE VERSION
 # ============================================================
 
 import os
@@ -10,171 +10,171 @@ from flask import (
     send_from_directory, flash, jsonify
 )
 
-# stage 1 parsing
+# Stage 1 parsing
 from stage_1_parsing import process_folder, save_parsed_data
 
-# databricks utilities
+# Databricks utilities
 from stage_2_databricks.db_utils import (
     upload_parsed_records, list_tables, preview_table, drop_table
 )
 
+# Flask App
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET", "supersecretkey")
 
-# ======================================================
-# FIXED DIRECTORIES (Railway SAFE)
-# ======================================================
+# =======================================
+# SAFE DIRECTORIES FOR RAILWAY
+# =======================================
 UPLOAD_ROOT = "/tmp/uploads"
-OUTPUTS_DIR = "/tmp/outputs"      # << FIXED
-IMAGES_ROOT = "/tmp/outputs/images"
+OUTPUTS_DIR = "/tmp/outputs"
+IMAGES_ROOT = "/tmp/images"
 
 os.makedirs(UPLOAD_ROOT, exist_ok=True)
 os.makedirs(OUTPUTS_DIR, exist_ok=True)
 os.makedirs(IMAGES_ROOT, exist_ok=True)
 
 
-# ======================================================
-# HOME
-# ======================================================
+# =======================================
+# HOME PAGE
+# =======================================
 @app.route("/")
 def index():
     return render_template("index.html")
 
 
-# ======================================================
-# UPLOAD
-# ======================================================
+# =======================================
+# FILE UPLOAD
+# =======================================
 @app.route("/upload", methods=["POST"])
 def upload_files():
     if "files" not in request.files:
-        flash("No files uploaded", "danger")
+        flash("No files uploaded.", "danger")
         return redirect(url_for("index"))
 
     files = request.files.getlist("files")
-
     if not files:
-        flash("Select at least one file", "warning")
+        flash("Please select at least one file.", "warning")
         return redirect(url_for("index"))
 
     session_id = datetime.utcnow().strftime("%Y%m%dT%H%M%S") + "_" + uuid.uuid4().hex[:8]
-    dest = os.path.join(UPLOAD_ROOT, session_id)
-    os.makedirs(dest, exist_ok=True)
+    dest_dir = os.path.join(UPLOAD_ROOT, session_id)
+    os.makedirs(dest_dir, exist_ok=True)
 
     saved = []
     for f in files:
-        if f.filename:
-            path = os.path.join(dest, f.filename)
-            f.save(path)
+        if f and f.filename:
+            file_path = os.path.join(dest_dir, f.filename)
+            f.save(file_path)
             saved.append(f.filename)
 
     if not saved:
-        flash("Files could not be saved", "danger")
+        flash("Failed to save uploaded files.", "danger")
         return redirect(url_for("index"))
 
     return redirect(url_for("parse_results", session_id=session_id))
 
 
-# ======================================================
-# PARSE RESULTS
-# ======================================================
+# =======================================
+# PARSE RESULTS PAGE
+# =======================================
 @app.route("/parse/<session_id>")
 def parse_results(session_id):
-    folder = os.path.join(UPLOAD_ROOT, session_id)
+    upload_dir = os.path.join(UPLOAD_ROOT, session_id)
 
-    if not os.path.isdir(folder):
-        flash("Session not found", "danger")
+    if not os.path.isdir(upload_dir):
+        flash("Invalid session ID.", "danger")
         return redirect(url_for("index"))
 
-    # process
+    # Process uploaded folder
     try:
-        parsed_df = process_folder(folder, session_id)
+        parsed_df = process_folder(upload_dir, session_id)
     except Exception as e:
         return render_template("error.html", error=f"Parser failed: {e}")
 
-    # save output file
+    # Save parsed text output
     output_filename = f"parsed_output_{session_id}.txt"
     output_path = os.path.join(OUTPUTS_DIR, output_filename)
 
     try:
-        save_parsed_data(parsed_df, output_path)   # << FIXED PATH
+        save_parsed_data(parsed_df, output_path)
     except Exception:
         with open(output_path, "w", encoding="utf-8") as f:
             f.write("")
 
-    # prepare records
-    records = []
+    # Build display records
+    parsed_records = []
     for _, row in parsed_df.iterrows():
         text = str(row.get("content", ""))
         snippet = text[:1000] + "..." if len(text) > 1000 else text
 
-        records.append({
+        parsed_records.append({
             "file_name": row["file_name"],
             "file_type": row["file_type"],
             "content": text,
             "snippet": snippet,
-            "images": row.get("images", [])
+            "images": row["images"],
         })
+
+    uploaded_files = os.listdir(upload_dir)
 
     return render_template(
         "results.html",
         session_id=session_id,
-        parsed_records=records,
+        parsed_records=parsed_records,
+        uploaded_files=uploaded_files,
         output_file=output_filename
     )
 
 
-# ======================================================
-# DOWNLOAD PARSED OUTPUT
-# ======================================================
+# =======================================
+# DOWNLOAD OUTPUT FILE
+# =======================================
 @app.route("/download/<filename>")
 def download_output(filename):
     return send_from_directory(OUTPUTS_DIR, filename, as_attachment=True)
 
 
-# ======================================================
-# SERVE IMAGES
-# ======================================================
-@app.route("/images/<session_id>/<filename>")
-def serve_image(session_id, filename):
-    folder = os.path.join(IMAGES_ROOT, session_id)
-
-    if not os.path.isdir(folder):
-        return ("Image folder not found", 404)
-
-    return send_from_directory(folder, filename)
+# =======================================
+# SERVE EXTRACTED IMAGES
+# =======================================
+@app.route("/images/<path:image>")
+def serve_image(image):
+    return send_from_directory(IMAGES_ROOT, image)
 
 
-# ======================================================
-# ORIGINAL FILE DOWNLOAD
-# ======================================================
+# =======================================
+# DOWNLOAD ORIGINAL UPLOAD
+# =======================================
 @app.route("/uploads/<session_id>/<filename>")
 def download_uploaded_file(session_id, filename):
     folder = os.path.join(UPLOAD_ROOT, session_id)
     return send_from_directory(folder, filename, as_attachment=True)
 
 
-# ======================================================
-# PDF PREVIEW
-# ======================================================
+# =======================================
+# PREVIEW PDF / DOCUMENT
+# =======================================
 @app.route("/preview/<session_id>/<filename>")
 def preview_uploaded_file(session_id, filename):
     folder = os.path.join(UPLOAD_ROOT, session_id)
     return send_from_directory(folder, filename)
 
 
-# ======================================================
+# =======================================
 # UPLOAD TO DATABRICKS
-# ======================================================
+# =======================================
 @app.route("/upload_to_databricks", methods=["POST"])
 def upload_to_databricks():
     data = request.get_json() or request.form
-    table = data.get("table_name")
-    output_filename = data.get("output_file")
+    table_name = data.get("table_name")
+    file_name = data.get("output_file")
 
-    if not table or not output_filename:
-        return jsonify({"error": "Missing table or file"}), 400
+    if not table_name:
+        return jsonify({"error": "Table name required"}), 400
+    if not file_name:
+        return jsonify({"error": "Output file missing"}), 400
 
-    file_path = os.path.join(OUTPUTS_DIR, output_filename)
+    file_path = os.path.join(OUTPUTS_DIR, file_name)
 
     if not os.path.exists(file_path):
         return jsonify({"error": "Output file not found"}), 404
@@ -184,17 +184,17 @@ def upload_to_databricks():
 
     try:
         upload_parsed_records(
-            [{"file_name": output_filename, "file_type": ".txt", "content": content}],
-            table_name=table
+            [{"file_name": file_name, "file_type": ".txt", "content": content}],
+            table_name=table_name
         )
-        return jsonify({"message": f"Uploaded to Databricks table {table}"})
+        return jsonify({"message": f"Uploaded to Databricks: {table_name}"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
-# ======================================================
-# DATABRICKS TABLE LIST
-# ======================================================
+# =======================================
+# LIST TABLES
+# =======================================
 @app.route("/db/tables")
 def db_tables():
     try:
@@ -204,24 +204,38 @@ def db_tables():
         return render_template("error.html", error=str(e))
 
 
+# =======================================
+# PREVIEW TABLE
+# =======================================
 @app.route("/db/table/<table_name>")
 def db_table_preview(table_name):
     try:
-        cols, rows = preview_table(table_name)
-        return render_template("db_table_preview.html", columns=cols, rows=rows, table_name=table_name)
+        columns, rows = preview_table(table_name)
+        return render_template(
+            "db_table_preview.html",
+            table_name=table_name,
+            columns=columns,
+            rows=rows
+        )
     except Exception as e:
         return render_template("error.html", error=str(e))
 
 
+# =======================================
+# DELETE TABLE
+# =======================================
 @app.route("/db/table/<table_name>/delete", methods=["POST"])
 def db_table_delete(table_name):
-    drop_table(table_name)
-    flash("Table deleted", "success")
-    return redirect(url_for("db_tables"))
+    try:
+        drop_table(table_name)
+        flash("Table deleted successfully.", "success")
+        return redirect(url_for("db_tables"))
+    except Exception as e:
+        return render_template("error.html", error=str(e))
 
 
-# ======================================================
-# RUN
-# ======================================================
+# =======================================
+# MAIN
+# =======================================
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

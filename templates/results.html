@@ -4,7 +4,7 @@
 <div class="row">
   <div class="col-md-10 offset-md-1">
 
-    <!-- Uploaded Files -->
+    <!-- Uploaded Files Section -->
     <h3>Uploaded Files</h3>
 
     {% if uploaded_files %}
@@ -25,8 +25,9 @@
       </ul>
     {% endif %}
 
+    <hr>
 
-    <!-- Parsed Results -->
+    <!-- Parsed Results Section -->
     <h3>Parsed Results</h3>
     <p>Session: <strong>{{ session_id }}</strong></p>
 
@@ -38,42 +39,47 @@
       </a>
     </div>
 
-
-    <!-- Accordion of parsed files -->
+    <!-- Accordion of Parsed Files -->
     <div class="accordion" id="resultsAccordion">
       {% for r in parsed_records %}
       <div class="accordion-item">
 
-        <h2 class="accordion-header" id="head{{ loop.index }}">
+        <h2 class="accordion-header" id="heading{{ loop.index }}">
           <button class="accordion-button collapsed"
-            data-bs-toggle="collapse" data-bs-target="#collapse{{ loop.index }}">
+                  data-bs-toggle="collapse"
+                  data-bs-target="#collapse{{ loop.index }}">
             {{ r.file_name }} — {{ r.file_type }}
           </button>
         </h2>
 
-        <div id="collapse{{ loop.index }}" class="accordion-collapse collapse"
+        <div id="collapse{{ loop.index }}"
+             class="accordion-collapse collapse"
              data-bs-parent="#resultsAccordion">
 
           <div class="accordion-body">
+
+            <!-- Snippet -->
             <pre style="white-space: pre-wrap;">{{ r.snippet }}</pre>
 
+            <!-- Full content -->
             <details>
               <summary>Show full content</summary>
               <pre style="white-space: pre-wrap;">{{ r.content }}</pre>
             </details>
 
+            <!-- Images section -->
             {% if r.images %}
-              <hr/>
+              <hr>
               <h6>Extracted Images</h6>
 
               <div class="d-flex flex-wrap g-2 mb-3">
 
                 {% for im in r.images %}
-                <div class="me-3 mb-3" style="width:130px;">
+                <div class="me-3 mb-3" style="width:140px;">
 
                   <img src="{{ im.url }}"
                        class="img-thumbnail"
-                       style="width:130px;height:130px;object-fit:cover;cursor:pointer"
+                       style="width:140px;height:140px;object-fit:cover;cursor:pointer"
                        onclick="openImageModal('{{ im.url }}')">
 
                   <div class="small mt-1 text-truncate">{{ im.name }}</div>
@@ -95,12 +101,10 @@
       {% endfor %}
     </div>
 
+    <hr>
 
-    <hr/>
-
-
-    <!-- Upload to Databricks -->
-    <h5>Upload parsed output to Databricks</h5>
+    <!-- Databricks Upload Section -->
+    <h5>Upload Parsed Output to Databricks</h5>
 
     <form id="dbForm">
       <div class="row g-2">
@@ -126,7 +130,6 @@
   </div>
 </div>
 
-
 <!-- Modal for image preview -->
 <div class="modal fade" id="imageModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -137,7 +140,6 @@
     </div>
   </div>
 </div>
-
 
 <script>
 function openImageModal(url) {
@@ -156,7 +158,7 @@ document.getElementById("dbForm").addEventListener("submit", async function(e) {
 
   const resp = await fetch("{{ url_for('upload_to_databricks') }}", {
     method: "POST",
-    headers: {"Content-Type": "application/json"},
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ table_name, output_file })
   });
 

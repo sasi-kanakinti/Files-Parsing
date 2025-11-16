@@ -4,38 +4,52 @@ from docx import Document
 import os
 from typing import List, Tuple
 
+
 def parse_word(file_path: str, session_id: str) -> Tuple[str, List[str]]:
+    """
+    Extract text + images from Word (.docx).
+    Images saved under: /tmp/outputs/images/word_images/<session_id>/
+    """
+
     paragraphs = []
     saved_images = []
 
-    images_dir = os.path.join("Outputs", "word_images", session_id)
+    # Final Railway-safe image directory
+    images_dir = os.path.join("/tmp/outputs/images", "word_images", session_id)
     os.makedirs(images_dir, exist_ok=True)
 
+    # -------- TEXT --------
     doc = Document(file_path)
 
-    # extract text
+    # normal paragraphs
     for p in doc.paragraphs:
-        tx = p.text.strip()
-        if tx:
-            paragraphs.append(tx)
+        text = p.text.strip()
+        if text:
+            paragraphs.append(text)
 
-    # extract tables
+    # tables as CSV-like rows
     for table in doc.tables:
         for row in table.rows:
-            paragraphs.append(",".join([c.text.strip() for c in row.cells]))
+            cleaned = ",".join([c.text.strip() for c in row.cells])
+            if cleaned:
+                paragraphs.append(cleaned)
 
-    # extract inline images
+    # -------- IMAGES --------
     rels = doc.part.rels
     for rel in rels:
         rel_obj = rels[rel]
+
         if "image" in rel_obj.target_ref:
             img_bytes = rel_obj.target_part.blob
             img_name = os.path.basename(rel_obj.target_ref)
             img_path = os.path.join(images_dir, img_name)
 
-            with open(img_path, "wb") as fh:
-                fh.write(img_bytes)
+            try:
+                with open(img_path, "wb") as fh:
+                    fh.write(img_bytes)
+                saved_images.append(img_path)
+            except Exception:
+                continue
 
-            saved_images.append(img_path)
-
-    return "\n\n".join(paragraphs).strip(), saved_images
+    full_text = "\n\n".join(paragraphs).strip()
+    return full_text, saved_images

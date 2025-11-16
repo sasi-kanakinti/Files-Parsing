@@ -1,10 +1,43 @@
-from databricks import sql
-import os
+"""
+Simple Databricks SQL connection test
+Run this locally (NOT on Railway) to verify credentials.
+"""
 
-conn = sql.connect(
-    server_hostname="dbc-bd1c6d29-5a6c.cloud.databricks.com",
-    http_path="/sql/1.0/warehouses/5aaa9aaa404e72b9",
-    access_token=os.getenv("DATABRICKS_TOKEN")
-)
-print("✅ Connected successfully!")
-conn.close()
+import os
+from databricks import sql
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SERVER = os.getenv("DATABRICKS_SERVER")
+HTTP_PATH = os.getenv("DATABRICKS_HTTP_PATH")
+TOKEN = os.getenv("DATABRICKS_TOKEN")
+
+if not SERVER or not HTTP_PATH or not TOKEN:
+    raise EnvironmentError("Missing Databricks environment variables.")
+
+print("🔍 Testing Databricks SQL connection...")
+
+try:
+    conn = sql.connect(
+        server_hostname=SERVER,
+        http_path=HTTP_PATH,
+        access_token=TOKEN
+    )
+
+    cur = conn.cursor()
+
+    cur.execute("SELECT current_catalog(), current_schema()")
+
+    catalog, schema = cur.fetchall()[0]
+
+    print("✅ Connected successfully!")
+    print(f"📁 Catalog : {catalog}")
+    print(f"📂 Schema  : {schema}")
+
+    cur.close()
+    conn.close()
+
+except Exception as e:
+    print("❌ Connection failed!")
+    print("Error:", e)

@@ -1,20 +1,22 @@
 """
-Databricks helpers for SQL connector-based operations.
+Databricks SQL Helper Utilities
+Fully patched & Railway-ready.
 """
 
 import os
 from datetime import datetime
+from databricks import sql
 from dotenv import load_dotenv
-from databricks import sql   # <-- Correct import
 
 load_dotenv()
 
-# --------------------------------------------------------------------
-# Load Databricks Credentials (matching Railway variable names)
-# --------------------------------------------------------------------
+# ============================================================
+# Load Databricks Credentials
+# ============================================================
 DATABRICKS_SERVER = os.getenv("DATABRICKS_SERVER")
 DATABRICKS_HTTP_PATH = os.getenv("DATABRICKS_HTTP_PATH")
 DATABRICKS_TOKEN = os.getenv("DATABRICKS_TOKEN")
+
 
 def validate_env():
     missing = []
@@ -27,16 +29,20 @@ def validate_env():
 
     if missing:
         raise EnvironmentError(
-            f"❌ Missing required Databricks environment variables: {', '.join(missing)}"
+            f"❌ Missing Databricks environment variables: {', '.join(missing)}"
         )
+
 
 validate_env()
 
 
-# --------------------------------------------------------------------
-# Create Databricks SQL connection
-# --------------------------------------------------------------------
+# ============================================================
+# Stable SQL Connect
+# ============================================================
 def get_conn():
+    """
+    Returns a fresh Databricks SQL connector instance.
+    """
     return sql.connect(
         server_hostname=DATABRICKS_SERVER,
         http_path=DATABRICKS_HTTP_PATH,
@@ -44,10 +50,13 @@ def get_conn():
     )
 
 
-# --------------------------------------------------------------------
-# Detect Active Catalog + Schema
-# --------------------------------------------------------------------
+# ============================================================
+# Detect Current Catalog & Schema
+# ============================================================
 def detect_namespace():
+    """
+    Returns tuple: (catalog, schema)
+    """
     conn = get_conn()
     cur = conn.cursor()
 
@@ -60,16 +69,28 @@ def detect_namespace():
     return catalog, schema
 
 
-# --------------------------------------------------------------------
+# ============================================================
 # Upload Parsed Records
-# --------------------------------------------------------------------
+# ============================================================
 def upload_parsed_records(file_records, table_name="parsed_files"):
+    """
+    Upload parsed info as rows into a Databricks table.
+    file_records = [
+        {
+            "file_name": "...",
+            "file_type": "...",
+            "content": "...text...",
+        }
+    ]
+    """
+
     catalog, schema = detect_namespace()
-    full_table = f"{catalog}.{schema}.{table_name}"
+    full_table = f"`{catalog}`.`{schema}`.`{table_name}`"
 
     conn = get_conn()
     cur = conn.cursor()
 
+    # CREATE TABLE
     cur.execute(f"""
         CREATE TABLE IF NOT EXISTS {full_table} (
             file_name STRING,
@@ -79,35 +100,39 @@ def upload_parsed_records(file_records, table_name="parsed_files"):
         )
     """)
 
-    insert_query = f"""
-        INSERT INTO {full_table}
-        (file_name, file_type, content, parsed_at)
+    # INSERT
+    insert_sql = f"""
+        INSERT INTO {full_table} (file_name, file_type, content, parsed_at)
         VALUES (?, ?, ?, ?)
     """
 
-    now = datetime.utcnow().isoformat(" ")
-    rows = [(r["file_name"], r["file_type"], r["content"], now) for r in file_records]
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
-    cur.executemany(insert_query, rows)
+    rows = [
+        (rec["file_name"], rec["file_type"], rec["content"], now)
+        for rec in file_records
+    ]
+
+    cur.executemany(insert_sql, rows)
 
     cur.close()
     conn.close()
 
-    print(f"✅ Uploaded {len(rows)} rows into {full_table}")
+    print(f"✅ Uploaded {len(rows)} rows to {full_table}")
 
 
-# --------------------------------------------------------------------
+# ============================================================
 # List Tables
-# --------------------------------------------------------------------
+# ============================================================
 def list_tables():
     catalog, schema = detect_namespace()
     conn = get_conn()
     cur = conn.cursor()
 
-    cur.execute(f"SHOW TABLES IN {catalog}.{schema}")
-    rows = cur.fetchall()
+    cur.execute(f"SHOW TABLES IN `{catalog}`.`{schema}`")
+    result = cur.fetchall()
 
-    tables = [r[1] for r in rows if r[1]]
+    tables = [row[1] for row in result]
 
     cur.close()
     conn.close()
@@ -115,19 +140,20 @@ def list_tables():
     return tables
 
 
-# --------------------------------------------------------------------
+# ============================================================
 # Preview Table
-# --------------------------------------------------------------------
+# ============================================================
 def preview_table(table_name, limit=20):
     catalog, schema = detect_namespace()
-    full_table = f"{catalog}.{schema}.{table_name}"
+    full_table = f"`{catalog}`.`{schema}`.`{table_name}`"
 
     conn = get_conn()
     cur = conn.cursor()
 
     cur.execute(f"SELECT * FROM {full_table} LIMIT {limit}")
     rows = cur.fetchall()
-    columns = [c[0] for c in cur.description]
+
+    columns = [desc[0] for desc in cur.description]
 
     cur.close()
     conn.close()
@@ -135,12 +161,12 @@ def preview_table(table_name, limit=20):
     return columns, rows
 
 
-# --------------------------------------------------------------------
-# Delete Table
-# --------------------------------------------------------------------
+# ============================================================
+# Delete
+# ============================================================
 def drop_table(table_name):
     catalog, schema = detect_namespace()
-    full_table = f"{catalog}.{schema}.{table_name}"
+    full_table = f"`{catalog}`.`{schema}`.`{table_name}`"
 
     conn = get_conn()
     cur = conn.cursor()
@@ -149,4 +175,6 @@ def drop_table(table_name):
 
     cur.close()
     conn.close()
+
     return True
+
