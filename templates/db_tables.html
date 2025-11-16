@@ -1,20 +1,75 @@
-{% extends "base.html" %}
-{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Databricks Tables</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
 
-<h3 class="mb-3">Databricks Tables</h3>
+    <style>
+        body {
+            background: #f8fafc;
+        }
+        .table-card {
+            transition: 0.2s ease-in-out;
+        }
+        .table-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+        }
+        .header-bar {
+            background: #0d6efd;
+            padding: 18px;
+            color: white;
+            font-size: 22px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
 
-{% if tables %}
-<ul class="list-group mt-3">
-  {% for t in tables %}
-    <li class="list-group-item">
-        <a href="{{ url_for('db_table_preview', table_name=t) }}">
-            {{ t }}
-        </a>
-    </li>
-  {% endfor %}
-</ul>
-{% else %}
-<p>No tables found.</p>
-{% endif %}
+<div class="header-bar">
+    Databricks Tables
+</div>
 
-{% endblock %}
+<div class="container my-4">
+
+    {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <h3>Your Tables</h3>
+    <p class="text-muted">Below are all tables detected in your Databricks workspace.</p>
+
+    {% if tables|length == 0 %}
+        <div class="alert alert-warning">No tables found in the current catalog/schema.</div>
+    {% endif %}
+
+    <div class="row mt-4">
+
+        {% for tbl in tables %}
+        <div class="col-md-4">
+            <div class="card table-card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">{{ tbl }}</h5>
+
+                    <a href="{{ url_for('preview_table_route', name=tbl) }}"
+                       class="btn btn-primary btn-sm">
+                        Preview
+                    </a>
+
+                    <a href="{{ url_for('delete_table_route', name=tbl) }}"
+                       class="btn btn-danger btn-sm"
+                       onclick="return confirm('Delete table {{ tbl }}?')">
+                        Delete
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+    </div>
+
+</div>
+
+</body>
+</html>

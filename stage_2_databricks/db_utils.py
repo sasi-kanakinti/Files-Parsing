@@ -5,28 +5,38 @@ Databricks helpers for SQL connector-based operations.
 import os
 from datetime import datetime
 from dotenv import load_dotenv
+from databricks import sql   # <-- Correct import
 
 load_dotenv()
 
-try:
-    from databricks import sql
-except ImportError:
-    sql = None
-
-
 # --------------------------------------------------------------------
-# Connection Info
+# Load Databricks Credentials (matching Railway variable names)
 # --------------------------------------------------------------------
 DATABRICKS_SERVER = os.getenv("DATABRICKS_SERVER")
 DATABRICKS_HTTP_PATH = os.getenv("DATABRICKS_HTTP_PATH")
 DATABRICKS_TOKEN = os.getenv("DATABRICKS_TOKEN")
 
-if not DATABRICKS_TOKEN:
-    raise EnvironmentError("❌ Missing DATABRICKS_TOKEN in .env")
+def validate_env():
+    missing = []
+    if not DATABRICKS_SERVER:
+        missing.append("DATABRICKS_SERVER")
+    if not DATABRICKS_HTTP_PATH:
+        missing.append("DATABRICKS_HTTP_PATH")
+    if not DATABRICKS_TOKEN:
+        missing.append("DATABRICKS_TOKEN")
+
+    if missing:
+        raise EnvironmentError(
+            f"❌ Missing required Databricks environment variables: {', '.join(missing)}"
+        )
+
+validate_env()
 
 
+# --------------------------------------------------------------------
+# Create Databricks SQL connection
+# --------------------------------------------------------------------
 def get_conn():
-    """Create Databricks SQL connection."""
     return sql.connect(
         server_hostname=DATABRICKS_SERVER,
         http_path=DATABRICKS_HTTP_PATH,
@@ -55,13 +65,11 @@ def detect_namespace():
 # --------------------------------------------------------------------
 def upload_parsed_records(file_records, table_name="parsed_files"):
     catalog, schema = detect_namespace()
-
     full_table = f"{catalog}.{schema}.{table_name}"
 
     conn = get_conn()
     cur = conn.cursor()
 
-    # Create table if missing
     cur.execute(f"""
         CREATE TABLE IF NOT EXISTS {full_table} (
             file_name STRING,
@@ -99,7 +107,6 @@ def list_tables():
     cur.execute(f"SHOW TABLES IN {catalog}.{schema}")
     rows = cur.fetchall()
 
-    # Table name is column index 1
     tables = [r[1] for r in rows if r[1]]
 
     cur.close()

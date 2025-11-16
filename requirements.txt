@@ -10,3 +10,5 @@ PyMuPDF==1.23.22
 Werkzeug==3.0.3
 
 python-dotenv==1.0.1
+
+databricks-sql-connector==2.9.0

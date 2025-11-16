@@ -1,10 +1,9 @@
 # ============================================================
-# app.py — FINAL RAILWAY DEPLOYMENT VERSION (100% Working)
+# app.py — FINAL RAILWAY DEPLOYMENT VERSION (WORKING)
 # ============================================================
 
 import os
 import uuid
-import shutil
 from datetime import datetime
 from flask import (
     Flask, request, render_template, redirect, url_for,
@@ -22,30 +21,29 @@ from stage_2_databricks.db_utils import (
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET", "supersecretkey")
 
-# ================================
-# STORAGE DIRECTORIES (RAILWAY SAFE)
-# ================================
+# ============================================================
+# DIRECTORIES (Railway temporary storage)
+# ============================================================
 UPLOAD_ROOT = "/tmp/uploads"
 OUTPUTS_DIR = "/tmp/outputs"
 IMAGES_ROOT = "/tmp/Outputs"
 
-# ensure directories exist
 os.makedirs(UPLOAD_ROOT, exist_ok=True)
 os.makedirs(OUTPUTS_DIR, exist_ok=True)
 os.makedirs(IMAGES_ROOT, exist_ok=True)
 
 
-# ================================
+# ============================================================
 # HOME PAGE
-# ================================
+# ============================================================
 @app.route("/")
 def index():
     return render_template("index.html")
 
 
-# ================================
+# ============================================================
 # UPLOAD FILES
-# ================================
+# ============================================================
 @app.route("/upload", methods=["POST"])
 def upload_files():
     if "files" not in request.files:
@@ -58,13 +56,12 @@ def upload_files():
         return redirect(url_for("index"))
 
     session_id = datetime.utcnow().strftime("%Y%m%dT%H%M%S") + "_" + uuid.uuid4().hex[:8]
-
     dest_dir = os.path.join(UPLOAD_ROOT, session_id)
     os.makedirs(dest_dir, exist_ok=True)
 
     saved = []
     for f in files:
-        if f and f.filename:
+        if f.filename:
             f.save(os.path.join(dest_dir, f.filename))
             saved.append(f.filename)
 
@@ -72,13 +69,12 @@ def upload_files():
         flash("Files could not be saved.", "danger")
         return redirect(url_for("index"))
 
-    # redirect to result page
     return redirect(url_for("parse_results", session_id=session_id))
 
 
-# ================================
-# PARSE RESULTS
-# ================================
+# ============================================================
+# PARSE RESULTS PAGE
+# ============================================================
 @app.route("/parse/<session_id>")
 def parse_results(session_id):
     upload_folder = os.path.join(UPLOAD_ROOT, session_id)
@@ -87,20 +83,18 @@ def parse_results(session_id):
         flash("Session not found.", "danger")
         return redirect(url_for("index"))
 
-    # run parser
     try:
         parsed_df = process_folder(upload_folder, session_id)
     except Exception as e:
         return render_template("error.html", error=f"Parsing failed: {e}")
 
-    # save parsed text output
+    # save parsed text
     output_name = f"parsed_output_{session_id}.txt"
-    output_path = os.path.join(OUTPUTS_DIR, output_name)
-
     try:
         save_parsed_data(parsed_df, output_name)
     except:
-        with open(output_path, "w", encoding="utf-8") as f:
+        # fallback file
+        with open(os.path.join(OUTPUTS_DIR, output_name), "w", encoding="utf-8") as f:
             f.write("")
 
     # build parsed records
@@ -117,7 +111,7 @@ def parse_results(session_id):
             "images": row.get("images", [])
         })
 
-    # categorize images
+    # images grouped by file type
     images_by_type = {"pdf": [], "word": [], "excel": []}
     for r in records:
         ext = r["file_type"].lower()
@@ -133,10 +127,8 @@ def parse_results(session_id):
 
         for img_path in r["images"]:
             filename = os.path.basename(img_path)
-            img_url = url_for("serve_image", typ=bucket, session_id=session_id, filename=filename)
-
             images_by_type[bucket].append({
-                "url": img_url,
+                "url": url_for("serve_image", typ=bucket, session_id=session_id, filename=filename),
                 "name": filename,
                 "path": img_path
             })
@@ -148,22 +140,27 @@ def parse_results(session_id):
         session_id=session_id,
         parsed_records=records,
         uploaded_files=uploaded_files,
-        output_file=output_name,
+        output_file=output_name,   # <--- FIXED
         images_by_type=images_by_type
     )
 
 
-# ================================
-# DOWNLOAD PARSED OUTPUT
-# ================================
+# ============================================================
+# DOWNLOAD PARSED OUTPUT (Fixed)
+# ============================================================
 @app.route("/download/<filename>")
 def download_output(filename):
+    file_path = os.path.join(OUTPUTS_DIR, filename)
+
+    if not os.path.exists(file_path):
+        return f"❌ File not found on server: {file_path}", 404
+
     return send_from_directory(OUTPUTS_DIR, filename, as_attachment=True)
 
 
-# ================================
+# ============================================================
 # SERVE EXTRACTED IMAGES
-# ================================
+# ============================================================
 @app.route("/images/<typ>/<session_id>/<filename>")
 def serve_image(typ, session_id, filename):
     folder = os.path.join(IMAGES_ROOT, f"{typ}_images", session_id)
@@ -174,31 +171,27 @@ def serve_image(typ, session_id, filename):
     return send_from_directory(folder, filename)
 
 
-# ================================
-# ORIGINAL UPLOADED FILE DOWNLOAD
-# ================================
+# ============================================================
+# DOWNLOAD ORIGINAL UPLOADED FILES
+# ============================================================
 @app.route("/uploads/<session_id>/<filename>")
 def download_uploaded_file(session_id, filename):
     folder = os.path.join(UPLOAD_ROOT, session_id)
     return send_from_directory(folder, filename, as_attachment=True)
 
 
-# ================================
+# ============================================================
 # PREVIEW PDFs INLINE
-# ================================
+# ============================================================
 @app.route("/preview/<session_id>/<filename>")
 def preview_uploaded_file(session_id, filename):
     folder = os.path.join(UPLOAD_ROOT, session_id)
-
-    if filename.lower().endswith(".pdf"):
-        return send_from_directory(folder, filename)
-
-    return send_from_directory(folder, filename, as_attachment=True)
+    return send_from_directory(folder, filename)
 
 
-# ================================
+# ============================================================
 # UPLOAD TO DATABRICKS
-# ================================
+# ============================================================
 @app.route("/upload_to_databricks", methods=["POST"])
 def upload_to_databricks():
     data = request.get_json() or request.form
@@ -228,9 +221,9 @@ def upload_to_databricks():
         return jsonify({"error": str(e)}), 500
 
 
-# ================================
-# DATABRICKS TABLE BROWSER
-# ================================
+# ============================================================
+# DATABRICKS TABLE MANAGEMENT
+# ============================================================
 @app.route("/db/tables")
 def db_tables():
     try:
@@ -258,8 +251,8 @@ def db_table_delete(table_name):
         return render_template("error.html", error=str(e))
 
 
-# ================================
-# RUN
-# ================================
+# ============================================================
+# RUN LOCAL
+# ============================================================
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
