@@ -1,80 +1,164 @@
 {% extends "base.html" %}
 {% block content %}
+
 <div class="row">
   <div class="col-md-10 offset-md-1">
+
+    <h3>Uploaded Files</h3>
+
+    {% if uploaded_files %}
+      <ul class="list-group mb-4">
+        {% for file in uploaded_files %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span>{{ file }}</span>
+
+          <div>
+            <a href="{{ url_for('preview_uploaded_file', session_id=session_id, filename=file) }}"
+               class="btn btn-sm btn-primary">Preview</a>
+
+            <a href="{{ url_for('download_uploaded_file', session_id=session_id, filename=file) }}"
+               class="btn btn-sm btn-success">Download</a>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+
     <h3>Parsed Results</h3>
     <p>Session: <strong>{{ session_id }}</strong></p>
 
     <div class="mb-3">
-      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('download_output', filename=output_file) }}">Download parsed outputs (outputs/{{ output_file }})</a>
+      <a class="btn btn-outline-secondary btn-sm"
+         href="{{ url_for('download_output', filename=output_file) }}">
+         Download parsed outputs ({{ output_file }})
+      </a>
     </div>
 
+
+    <!-- Parsed Files Accordion -->
     <div class="accordion" id="resultsAccordion">
-      {% for r in records %}
+      {% for r in parsed_records %}
       <div class="accordion-item">
-        <h2 class="accordion-header" id="heading{{ loop.index }}">
-          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ loop.index }}">
+
+        <h2 class="accordion-header" id="head{{ loop.index }}">
+          <button class="accordion-button collapsed" type="button"
+            data-bs-toggle="collapse" data-bs-target="#collapse{{ loop.index }}">
             {{ r.file_name }} — {{ r.file_type }}
           </button>
         </h2>
-        <div id="collapse{{ loop.index }}" class="accordion-collapse collapse" data-bs-parent="#resultsAccordion">
+
+        <div id="collapse{{ loop.index }}" class="accordion-collapse collapse"
+          data-bs-parent="#resultsAccordion">
           <div class="accordion-body">
+
             <pre style="white-space: pre-wrap;">{{ r.snippet }}</pre>
+
             <details>
               <summary>Show full content</summary>
               <pre style="white-space: pre-wrap;">{{ r.content }}</pre>
             </details>
+
+            {% if r.images %}
+              <hr/>
+              <h6>Extracted Images</h6>
+
+              <div class="d-flex flex-wrap g-2 mb-3">
+
+                {% for im in r.images %}
+                <div class="me-3 mb-3" style="width:130px;">
+
+                  <img src="{{ im.url }}"
+                       class="img-thumbnail"
+                       style="width:130px;height:130px;object-fit:cover;cursor:pointer"
+                       onclick="openImageModal('{{ im.url }}')">
+
+                  <div class="small mt-1 text-truncate">{{ im.name }}</div>
+
+                  <a href="{{ im.url }}" download
+                     class="btn btn-sm btn-outline-secondary mt-1">Download</a>
+                </div>
+                {% endfor %}
+
+              </div>
+            {% endif %}
+
           </div>
         </div>
+
       </div>
       {% endfor %}
     </div>
 
+
     <hr/>
+
     <h5>Upload parsed output to Databricks</h5>
     <form id="dbForm">
-      <div class="row g-2 align-items-center">
+      <div class="row g-2">
+
         <div class="col-auto">
           <label class="col-form-label">Table name</label>
         </div>
+
         <div class="col-auto">
-          <input type="text" class="form-control" name="table_name" id="table_name" placeholder="parsed_files" required>
+          <input type="text" id="table_name" class="form-control" required>
         </div>
+
         <div class="col-auto">
-          <input type="hidden" id="output_file" name="output_file" value="{{ output_file }}">
-          <button type="submit" class="btn btn-success">Upload to Databricks</button>
+          <input type="hidden" id="output_file" value="{{ output_file }}">
+          <button class="btn btn-success">Upload to Databricks</button>
         </div>
+
       </div>
     </form>
 
     <div id="dbStatus" class="mt-3"></div>
 
+
+  </div>
+</div>
+
+
+<!-- Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content bg-dark">
+      <div class="modal-body text-center">
+        <img id="modalImg" src="" class="img-fluid rounded">
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
+function openImageModal(url) {
+  document.getElementById("modalImg").src = url;
+  new bootstrap.Modal(document.getElementById("imageModal")).show();
+}
+
 document.getElementById("dbForm").addEventListener("submit", async function(e) {
   e.preventDefault();
+
   const table_name = document.getElementById("table_name").value;
   const output_file = document.getElementById("output_file").value;
   const status = document.getElementById("dbStatus");
-  status.innerHTML = "Uploading to Databricks...";
 
-  try {
-    const resp = await fetch('{{ url_for("upload_to_databricks") }}', {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ table_name, output_file })
-    });
-    const data = await resp.json();
-    if (resp.ok) {
-      status.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
-    } else {
-      status.innerHTML = `<div class="alert alert-danger">Error: ${data.error || 'Unknown'}</div>`;
-    }
-  } catch (err) {
-    status.innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
-  }
+  status.innerHTML = "Uploading...";
+
+  const resp = await fetch("{{ url_for('upload_to_databricks') }}", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ table_name, output_file })
+  });
+
+  const data = await resp.json();
+
+  if (resp.ok)
+    status.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+  else
+    status.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
 });
 </script>
+
 {% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h3 class="mb-3">Databricks Tables</h3>
+
+{% if tables %}
+<ul class="list-group mt-3">
+  {% for t in tables %}
+    <li class="list-group-item">
+        <a href="{{ url_for('db_table_preview', table_name=t) }}">
+            {{ t }}
+        </a>
+    </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>No tables found.</p>
+{% endif %}
+
+{% endblock %}
