@@ -70,7 +70,7 @@ def detect_namespace():
 
 
 # ============================================================
-# Upload Parsed Records
+# Upload Parsed Records  (FIXED)
 # ============================================================
 def upload_parsed_records(file_records, table_name="parsed_files"):
     """
@@ -79,7 +79,7 @@ def upload_parsed_records(file_records, table_name="parsed_files"):
         {
             "file_name": "...",
             "file_type": "...",
-            "content": "...text...",
+            "content": "...text..."
         }
     ]
     """
@@ -90,7 +90,7 @@ def upload_parsed_records(file_records, table_name="parsed_files"):
     conn = get_conn()
     cur = conn.cursor()
 
-    # CREATE TABLE
+    # ---- CREATE TABLE -----------------------------------------------------
     cur.execute(f"""
         CREATE TABLE IF NOT EXISTS {full_table} (
             file_name STRING,
@@ -100,16 +100,22 @@ def upload_parsed_records(file_records, table_name="parsed_files"):
         )
     """)
 
-    # INSERT
+    # ---- INSERT (PATCHED PLACEHOLDERS) -----------------------------------
     insert_sql = f"""
         INSERT INTO {full_table} (file_name, file_type, content, parsed_at)
-        VALUES (?, ?, ?, ?)
+        VALUES (:file_name, :file_type, :content, :parsed_at)
     """
 
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
+    # Must be dict rows for Databricks SQL connector
     rows = [
-        (rec["file_name"], rec["file_type"], rec["content"], now)
+        {
+            "file_name": rec["file_name"],
+            "file_type": rec["file_type"],
+            "content": rec["content"],
+            "parsed_at": now,
+        }
         for rec in file_records
     ]
 
@@ -162,7 +168,7 @@ def preview_table(table_name, limit=20):
 
 
 # ============================================================
-# Delete
+# Delete Table
 # ============================================================
 def drop_table(table_name):
     catalog, schema = detect_namespace()
@@ -177,4 +183,3 @@ def drop_table(table_name):
     conn.close()
 
     return True
-
