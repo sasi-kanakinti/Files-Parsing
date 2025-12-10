@@ -1,8 +1,3 @@
-"""
-Simple Databricks SQL connection test
-Run this locally (NOT on Railway) to verify credentials.
-"""
-
 import os
 from databricks import sql
 from dotenv import load_dotenv

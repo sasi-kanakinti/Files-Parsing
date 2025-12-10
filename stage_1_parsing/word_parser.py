@@ -6,35 +6,26 @@ from typing import List, Tuple
 
 
 def parse_word(file_path: str, session_id: str) -> Tuple[str, List[str]]:
-    """
-    Extract text + images from Word (.docx).
-    Images saved under: /tmp/outputs/images/word_images/<session_id>/
-    """
 
     paragraphs = []
     saved_images = []
 
-    # Final Railway-safe image directory
     images_dir = os.path.join("/tmp/outputs/images", "word_images", session_id)
     os.makedirs(images_dir, exist_ok=True)
 
-    # -------- TEXT --------
     doc = Document(file_path)
 
-    # normal paragraphs
     for p in doc.paragraphs:
         text = p.text.strip()
         if text:
             paragraphs.append(text)
 
-    # tables as CSV-like rows
     for table in doc.tables:
         for row in table.rows:
             cleaned = ",".join([c.text.strip() for c in row.cells])
             if cleaned:
                 paragraphs.append(cleaned)
 
-    # -------- IMAGES --------
     rels = doc.part.rels
     for rel in rels:
         rel_obj = rels[rel]

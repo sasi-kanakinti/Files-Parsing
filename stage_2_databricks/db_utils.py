@@ -1,8 +1,3 @@
-"""
-Databricks SQL Helper Utilities
-Fully patched & Railway-ready with Base64-safe content storage.
-"""
-
 import os
 import base64
 from datetime import datetime
@@ -11,9 +6,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ============================================================
-# Load Databricks Credentials
-# ============================================================
 DATABRICKS_SERVER = os.getenv("DATABRICKS_SERVER")
 DATABRICKS_HTTP_PATH = os.getenv("DATABRICKS_HTTP_PATH")
 DATABRICKS_TOKEN = os.getenv("DATABRICKS_TOKEN")
@@ -37,21 +29,13 @@ def validate_env():
 validate_env()
 
 
-# ============================================================
-# Stable SQL Connect
-# ============================================================
 def get_conn():
-    """Returns a fresh Databricks SQL connector."""
     return sql.connect(
         server_hostname=DATABRICKS_SERVER,
         http_path=DATABRICKS_HTTP_PATH,
         access_token=DATABRICKS_TOKEN
     )
 
-
-# ============================================================
-# Detect Catalog / Schema
-# ============================================================
 def detect_namespace():
     conn = get_conn()
     cur = conn.cursor()
@@ -65,9 +49,6 @@ def detect_namespace():
     return catalog, schema
 
 
-# ============================================================
-# Upload Parsed Output (Base64 SAFE)
-# ============================================================
 def upload_parsed_records(file_records, table_name="parsed_files"):
     catalog, schema = detect_namespace()
     full_table = f"`{catalog}`.`{schema}`.`{table_name}`"
@@ -75,7 +56,6 @@ def upload_parsed_records(file_records, table_name="parsed_files"):
     conn = get_conn()
     cur = conn.cursor()
 
-    # Create table
     cur.execute(f"""
         CREATE TABLE IF NOT EXISTS {full_table} (
             file_name STRING,
@@ -105,7 +85,6 @@ def upload_parsed_records(file_records, table_name="parsed_files"):
             now
         )
 
-        # IMPORTANT: use execute() for each row
         cur.execute(insert_sql, row)
 
     conn.commit()
@@ -115,9 +94,6 @@ def upload_parsed_records(file_records, table_name="parsed_files"):
     print(f"Uploaded {len(file_records)} rows → {full_table}")
 
 
-# ============================================================
-# List Tables
-# ============================================================
 def list_tables():
     catalog, schema = detect_namespace()
     conn = get_conn()
@@ -132,9 +108,6 @@ def list_tables():
     return tables
 
 
-# ============================================================
-# Preview Table (AUTO-DECODE BASE64)
-# ============================================================
 def preview_table(table_name, limit=50):
     catalog, schema = detect_namespace()
     full_table = f"`{catalog}`.`{schema}`.`{table_name}`"
@@ -146,7 +119,6 @@ def preview_table(table_name, limit=50):
     rows = cur.fetchall()
     columns = [desc[0] for desc in cur.description]
 
-    # Decode Base64 content if column exists
     decoded_rows = []
     for row in rows:
         row = list(row)
@@ -164,9 +136,6 @@ def preview_table(table_name, limit=50):
     return columns, decoded_rows
 
 
-# ============================================================
-# Delete Table
-# ============================================================
 def drop_table(table_name):
     catalog, schema = detect_namespace()
     full_table = f"`{catalog}`.`{schema}`.`{table_name}`"

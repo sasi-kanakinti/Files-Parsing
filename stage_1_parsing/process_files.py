@@ -1,5 +1,3 @@
-# stage_1_parsing/process_files.py
-
 import os
 from typing import List, Dict, Callable
 import pandas as pd
@@ -10,7 +8,6 @@ from .pdf_parser import parse_pdf
 from .word_parser import parse_word
 from .excel_parser import parse_excel
 
-# registry of supported parsers
 PARSERS: Dict[str, Callable] = {
     ".pdf": parse_pdf,
     ".docx": parse_word,
@@ -21,10 +18,6 @@ PARSERS: Dict[str, Callable] = {
 
 
 def _process_single(file_path: str, session_id: str) -> Dict:
-    """
-    Parse a single file. Called inside the process pool worker.
-    Returns: {file_name, file_type, content, images, error}
-    """
 
     ext = os.path.splitext(file_path)[1].lower()
     base = os.path.basename(file_path)
@@ -60,10 +53,6 @@ def _process_single(file_path: str, session_id: str) -> Dict:
 
 
 def process_folder(folder_path: str, session_id: str, max_workers: int = None) -> pd.DataFrame:
-    """
-    Process all files inside a folder and return a DataFrame:
-    [file_name, file_type, content, images, error]
-    """
 
     files = []
     for entry in os.listdir(folder_path):
@@ -76,7 +65,6 @@ def process_folder(folder_path: str, session_id: str, max_workers: int = None) -
     if not files:
         return pd.DataFrame(columns=["file_name", "file_type", "content", "images", "error"])
 
-    # determine workers
     if max_workers is None:
         import multiprocessing
         max_workers = min(4, multiprocessing.cpu_count() or 1)
@@ -93,9 +81,6 @@ def process_folder(folder_path: str, session_id: str, max_workers: int = None) -
 
 
 def save_parsed_data(parsed_data: pd.DataFrame, output_file: str) -> str:
-    """
-    Save parsed text output into file under /tmp/outputs/
-    """
 
     output_dir = "/tmp/outputs"
     os.makedirs(output_dir, exist_ok=True)

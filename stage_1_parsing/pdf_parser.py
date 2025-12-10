@@ -1,27 +1,19 @@
-# stage_1_parsing/pdf_parser.py
-
 import fitz
 import os
 from typing import Tuple, List
 
 
 def parse_pdf(file_path: str, session_id: str) -> Tuple[str, List[str]]:
-    """
-    Extract text + images from PDF.
-    Images saved under: /tmp/outputs/images/pdf_images/<session_id>/
-    """
 
     text_parts = []
     saved_images = []
 
-    # Railway-safe GLOBAL folder
     images_dir = os.path.join("/tmp/outputs/images", "pdf_images", session_id)
     os.makedirs(images_dir, exist_ok=True)
 
     with fitz.open(file_path) as pdf:
         for page_index, page in enumerate(pdf):
 
-            # -------- TEXT EXTRACTION --------
             try:
                 blocks = page.get_text("blocks")
                 for block in blocks:
@@ -30,7 +22,6 @@ def parse_pdf(file_path: str, session_id: str) -> Tuple[str, List[str]]:
             except Exception:
                 text_parts.append(page.get_text("text"))
 
-            # -------- IMAGE EXTRACTION --------
             for img_index, img in enumerate(page.get_images(full=True)):
                 try:
                     xref = img[0]
