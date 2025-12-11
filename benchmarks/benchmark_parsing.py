@@ -1,8 +1,6 @@
 import sys
 import time
 from stage_1_parsing.process_files import process_folder
-import pandas as pd
-import os
 
 def time_run(folder, workers=None):
     start = time.time()
